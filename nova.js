@@ -185,6 +185,7 @@ function layout() {
     const placed = taskbarAnchor(display, { gap: prefs.taskbarGap, alignment: prefs.taskbarAlignment });
     anchor.x = placed.x;
     anchor.y = placed.y;
+    anchor.alignment = placed.alignment;
     const minX = wa.x;
     const maxX = wa.x + wa.width - WIN_W;
     const minY = wa.y;
@@ -214,6 +215,7 @@ function layout() {
     side: prefs.side,
     taskbar: prefs.placement === 'taskbar',
     opensUp: prefs.placement === 'taskbar',
+    alignment: prefs.placement === 'taskbar' ? prefs.taskbarAlignment : 'center',
   };
   const key = JSON.stringify(msg);
   if (key !== lastLayout) {

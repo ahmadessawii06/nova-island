@@ -279,7 +279,7 @@ const DIMS = {
 };
 const COMPACT_WIDE = 380; // compact with a title (media / download)
 const VDIMS = { ...DIMS, idle: [44, 244], compact: [44, 136], toast: [44, 168] };
-let anchor = { x: window.innerWidth / 2, y: 8, docked: false, vertical: false, side: 'right' };
+let anchor = { x: window.innerWidth / 2, y: 8, docked: false, vertical: false, side: 'right', alignment: 'center' };
 
 function positionIsland() {
   let [w, h] = (anchor.vertical ? VDIMS : DIMS)[lastMode] || DIMS.idle;
@@ -313,6 +313,16 @@ function positionIsland() {
     // flush against the screen edge, centered on the anchor, kept inside the window
     x = anchor.side === 'left' ? 0 : W - w;
     y = clamp(anchor.y - h / 2, 4, H - h - 4);
+  } else if (anchor.taskbar && anchor.alignment === 'left') {
+    x = clamp(anchor.x - DIMS.idle[0] / 2, 4, W - w - 4);
+    y = anchor.opensUp
+      ? clamp(anchor.y + DIMS.idle[1] - h, 4, H - h - 4)
+      : anchor.docked ? 0 : clamp(anchor.y, 0, H - h - 6);
+  } else if (anchor.taskbar && anchor.alignment === 'right') {
+    x = clamp(anchor.x + DIMS.idle[0] / 2 - w, 4, W - w - 4);
+    y = anchor.opensUp
+      ? clamp(anchor.y + DIMS.idle[1] - h, 4, H - h - 4)
+      : anchor.docked ? 0 : clamp(anchor.y, 0, H - h - 6);
   } else {
     x = clamp(anchor.x - w / 2, 4, W - w - 4);
     y = anchor.opensUp
@@ -337,6 +347,9 @@ bridge.onAnchor((a) => {
   island.classList.toggle('vertical', !!a.vertical);
   island.classList.toggle('side-left', !!a.vertical && a.side === 'left');
   island.classList.toggle('side-right', !!a.vertical && a.side === 'right');
+  island.classList.toggle('taskbar-left', !!a.taskbar && a.alignment === 'left');
+  island.classList.toggle('taskbar-right', !!a.taskbar && a.alignment === 'right');
+  island.classList.toggle('taskbar-center', !!a.taskbar && (a.alignment === 'center' || !a.alignment));
   positionIsland();
 });
 
