@@ -50,7 +50,7 @@ Copy a link, a sum or a color and the island knows what to do with it. It also l
 ![Smart](promo/en/05-smart.png)
 
 ### Your island, your way
-Turn on only what you need from one simple settings window. Vertical on the screen edge, hides in full screen, starts with Windows.
+Turn on only what you need from one simple settings window. Place the island at the top, above the taskbar, or vertically on either screen edge; it still hides in full screen and starts with Windows.
 
 ![Settings](promo/en/07-settings.png)
 
@@ -66,9 +66,12 @@ Requires Windows 10 or 11 (64-bit).
 
 ```bash
 npm install
+npm test           # placement calculation tests
 npm start          # run it
 npm run dist       # build the installer into dist/
 ```
+
+Taskbar placement architecture, native-integration scope, and Windows verification notes are in [docs/taskbar-island.md](docs/taskbar-island.md).
 
 ## Support Nova Island ☕
 

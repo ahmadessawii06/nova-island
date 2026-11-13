@@ -27,6 +27,7 @@ const prefsWindow = require('./prefs-window');
 const updater = require('./updater');
 const news = require('./news');
 const plugins = require('./plugins');
+const { DEFAULT_TASKBAR_GAP, taskbarAnchor } = require('./placement');
 
 // Keep our own windows (the mini player) out of Windows' media sessions, so the island and
 // the per-app commands keep targeting the browser tab rather than the mini player.
@@ -43,9 +44,21 @@ let quitting = false;
 let userHidden = false;
 let fullscreenHidden = false;
 let prefs = Object.assign(
-  { ax: null, ay: null, docked: false, vertical: false, side: 'right' },
+  {
+    ax: null, ay: null, docked: false, vertical: false, side: 'right', placement: null,
+    taskbarGap: DEFAULT_TASKBAR_GAP, taskbarAlignment: 'center',
+  },
   settings.load('settings.json', {})
 );
+// Settings from older builds only stored vertical + side. Keep reading and writing those
+// fields so downgrades remain harmless while exposing the clearer placement preference.
+if (!['original', 'taskbar', 'left', 'right'].includes(prefs.placement)) {
+  prefs.placement = prefs.vertical ? (prefs.side === 'left' ? 'left' : 'right') : 'original';
+}
+prefs.vertical = prefs.placement === 'left' || prefs.placement === 'right';
+if (prefs.vertical) prefs.side = prefs.placement;
+prefs.taskbarGap = Number.isFinite(Number(prefs.taskbarGap)) ? clamp(Number(prefs.taskbarGap), 0, 96) : DEFAULT_TASKBAR_GAP;
+if (!['left', 'center', 'right'].includes(prefs.taskbarAlignment)) prefs.taskbarAlignment = 'center';
 
 // The island's position is an "anchor": the top-center of the collapsed pill, in screen
 // coordinates. The window (always fully on screen) follows it, and the renderer places the
@@ -83,8 +96,22 @@ function send(channel, data) {
   if (win && !win.isDestroyed()) win.webContents.send(channel, data);
 }
 
-function defaultAnchor() {
-  const { bounds } = screen.getPrimaryDisplay();
+function displayForAnchor() {
+  if (!anchor) return screen.getPrimaryDisplay();
+  return screen.getDisplayNearestPoint({ x: Math.round(anchor.x), y: Math.round(anchor.y) });
+}
+
+function defaultAnchorForPlacement(display = displayForAnchor()) {
+  const { bounds, workArea } = display;
+  if (prefs.placement === 'taskbar') {
+    return taskbarAnchor(display, { gap: prefs.taskbarGap, alignment: prefs.taskbarAlignment });
+  }
+  if (prefs.placement === 'left' || prefs.placement === 'right') {
+    return {
+      x: prefs.placement === 'left' ? bounds.x : bounds.x + bounds.width,
+      y: workArea.y + workArea.height / 2,
+    };
+  }
   return { x: bounds.x + bounds.width / 2, y: bounds.y + FLOAT_TOP };
 }
 
@@ -102,7 +129,7 @@ function clamp(v, lo, hi) {
 // Only from the island's default place: never while vertical or after the user put it somewhere.
 let omni = null;
 let omniKey = '';
-const omniAllowed = () => features.get().addrIsland && !prefs.vertical && !prefs.placed;
+const omniAllowed = () => features.get().addrIsland && prefs.placement === 'original' && !prefs.placed;
 function onOmni(o) {
   const next = o && omniAllowed() ? o : null;
   const key = next ? `${next.x},${next.y},${next.w},${next.h},${next.focus}` : '';
@@ -150,7 +177,17 @@ function layout() {
   const wa = display.workArea;
   let wx;
   let wy;
-  if (prefs.vertical) {
+  if (prefs.placement === 'taskbar') {
+    const placed = taskbarAnchor(display, { gap: prefs.taskbarGap, alignment: prefs.taskbarAlignment });
+    anchor.x = placed.x;
+    anchor.y = placed.y;
+    const minX = wa.x;
+    const maxX = wa.x + wa.width - WIN_W;
+    const minY = wa.y;
+    const maxY = wa.y + wa.height - WIN_H;
+    wx = Math.round(clamp(anchor.x - WIN_W / 2, minX, Math.max(minX, maxX)));
+    wy = Math.round(clamp(anchor.y + PILL_H - WIN_H, minY, Math.max(minY, maxY)));
+  } else if (prefs.vertical) {
     anchor.x = prefs.side === 'left' ? b.x : b.x + b.width;
     anchor.y = clamp(anchor.y, wa.y + V_PILL_HALF_H, wa.y + wa.height - V_PILL_HALF_H);
     wx = prefs.side === 'left' ? b.x : b.x + b.width - WIN_W;
@@ -171,6 +208,8 @@ function layout() {
     docked: !prefs.vertical && prefs.docked,
     vertical: prefs.vertical,
     side: prefs.side,
+    taskbar: prefs.placement === 'taskbar',
+    opensUp: prefs.placement === 'taskbar',
   };
   const key = JSON.stringify(msg);
   if (key !== lastLayout) {
@@ -181,7 +220,7 @@ function layout() {
 
 function placeWindow() {
   if (!win) return;
-  anchor = Number.isFinite(prefs.ax) && Number.isFinite(prefs.ay) ? { x: prefs.ax, y: prefs.ay } : defaultAnchor();
+  anchor = Number.isFinite(prefs.ax) && Number.isFinite(prefs.ay) ? { x: prefs.ax, y: prefs.ay } : defaultAnchorForPlacement(screen.getPrimaryDisplay());
   // settings from before "placed" existed: judge by where the island is
   if (typeof prefs.placed !== 'boolean') prefs.placed = !atDefaultPlace();
   layout();
@@ -189,7 +228,7 @@ function placeWindow() {
 
 // the island's own spot: horizontal, at the top, centered on its display
 function atDefaultPlace() {
-  if (prefs.vertical || !anchor) return false;
+  if (prefs.placement !== 'original' || !anchor) return false;
   const b = screen.getDisplayNearestPoint({ x: Math.round(anchor.x), y: Math.round(anchor.y) }).bounds;
   return Math.abs(anchor.x - (b.x + b.width / 2)) < 2 && anchor.y - b.y <= FLOAT_TOP + 2;
 }
@@ -202,9 +241,24 @@ function savePosition() {
 
 function resetPosition() {
   prefs.docked = false;
-  prefs.vertical = false;
   prefs.placed = false;
-  anchor = defaultAnchor();
+  anchor = defaultAnchorForPlacement();
+  layout();
+  savePosition();
+  notifyGeneral();
+}
+
+function setPlacement(mode) {
+  if (!['original', 'taskbar', 'left', 'right'].includes(mode) || mode === prefs.placement) return;
+  const display = displayForAnchor();
+  prefs.placement = mode;
+  prefs.vertical = mode === 'left' || mode === 'right';
+  if (prefs.vertical) prefs.side = mode;
+  prefs.docked = false;
+  prefs.placed = false;
+  omni = null;
+  omniKey = '';
+  anchor = defaultAnchorForPlacement(display);
   layout();
   savePosition();
   notifyGeneral();
@@ -212,25 +266,10 @@ function resetPosition() {
 
 // Switch between the horizontal island and a vertical one docked to the nearest side.
 function setVertical(on) {
-  if (!anchor || on === prefs.vertical) return;
-  const b = screen.getDisplayNearestPoint({ x: Math.round(anchor.x), y: Math.round(anchor.y) }).bounds;
   if (on) {
-    prefs.side = anchor.x < b.x + b.width / 2 ? 'left' : 'right';
-    anchor = { x: anchor.x, y: anchor.y + V_PILL_HALF_H };
-  } else {
-    prefs.docked = false;
-    const x = prefs.side === 'left' ? b.x + 260 : b.x + b.width - 260;
-    anchor = { x, y: anchor.y - V_PILL_HALF_H };
-  }
-  prefs.vertical = on;
-  // leaving the address bar at once (it would otherwise stay until the bar itself changes)
-  if (on) {
-    omni = null;
-    omniKey = '';
-  }
-  layout();
-  savePosition();
-  notifyGeneral();
+    const b = displayForAnchor().bounds;
+    setPlacement(anchor.x < b.x + b.width / 2 ? 'left' : 'right');
+  } else setPlacement('original');
 }
 
 // --- dragging ---
@@ -253,6 +292,11 @@ function followCursor() {
   if (!drag || !win || win.isDestroyed()) return;
   const p = screen.getCursorScreenPoint();
   const b = screen.getDisplayNearestPoint(p).bounds;
+  if (prefs.placement === 'taskbar') {
+    anchor = { x: p.x, y: p.y };
+    layout();
+    return;
+  }
   if (prefs.vertical) {
     // slides along the edge; crossing the middle of the screen moves it to the other side
     prefs.side = p.x < b.x + b.width / 2 ? 'left' : 'right';
@@ -965,7 +1009,9 @@ ipcMain.on('context-menu', () => appMenu().popup({ window: win }));
 // General options live in main (position, startup); feature switches live in features.js.
 function generalState() {
   return {
-    shown: !userHidden, vertical: !!prefs.vertical, startWithWindows: startsWithWindows(), version: app.getVersion(),
+    shown: !userHidden, vertical: !!prefs.vertical, placement: prefs.placement,
+    taskbarGap: prefs.taskbarGap, taskbarAlignment: prefs.taskbarAlignment,
+    startWithWindows: startsWithWindows(), version: app.getVersion(),
     store: STORE,
     battery: battery.pct, saver: saverOn,
   };
@@ -1094,6 +1140,20 @@ system.onLocationChange((info) => {
   prefsWindow.send('location', info);
 });
 ipcMain.on('general-set', (_e, key, value) => {
+  if (key === 'placement') {
+    setPlacement(String(value));
+    return;
+  }
+  if (key === 'taskbarGap') {
+    prefs.taskbarGap = clamp(Number(value) || 0, 0, 96);
+    resetPosition();
+    return;
+  }
+  if (key === 'taskbarAlignment') {
+    if (['left', 'center', 'right'].includes(value)) prefs.taskbarAlignment = value;
+    resetPosition();
+    return;
+  }
   const on = !!value;
   if (key === 'shown') {
     userHidden = !on;

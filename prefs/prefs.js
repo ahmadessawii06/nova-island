@@ -134,7 +134,10 @@ $('#rm-preview').addEventListener('click', () => api.previewReminder());
 // ---- general (lives in the main process) ----
 function showGeneral(g) {
   $$('[data-general]').forEach((el) => { el.checked = !!g[el.dataset.general]; });
-  $$('[data-orient]').forEach((b) => b.setAttribute('aria-checked', String((b.dataset.orient === 'v') === !!g.vertical)));
+  $$('[data-placement]').forEach((b) => b.setAttribute('aria-checked', String(b.dataset.placement === g.placement)));
+  $$('[data-taskbar-align]').forEach((b) => b.setAttribute('aria-checked', String(b.dataset.taskbarAlign === g.taskbarAlignment)));
+  $$('.taskbar-option').forEach((el) => el.classList.toggle('off', g.placement !== 'taskbar'));
+  $('#taskbar-gap output').textContent = `${g.taskbarGap} px`;
   if (g.version) $('#version').textContent = `Version ${g.version}`;
   // the Store version: Windows runs the startup entry and the Store installs updates
   $('#startup-row').hidden = $('#update-row').hidden = !!g.store;
@@ -151,10 +154,21 @@ $$('[data-general]').forEach((el) => el.addEventListener('change', () => {
   api.setGeneral(el.dataset.general, el.checked);
   saved();
 }));
-$$('[data-orient]').forEach((b) => b.addEventListener('click', () => {
-  api.setGeneral('vertical', b.dataset.orient === 'v');
+$$('[data-placement]').forEach((b) => b.addEventListener('click', () => {
+  api.setGeneral('placement', b.dataset.placement);
   saved();
 }));
+$$('[data-taskbar-align]').forEach((b) => b.addEventListener('click', () => {
+  api.setGeneral('taskbarAlignment', b.dataset.taskbarAlign);
+  saved();
+}));
+$('#taskbar-gap').addEventListener('click', (e) => {
+  const b = e.target.closest('button');
+  if (!b) return;
+  const current = Number.parseInt($('#taskbar-gap output').textContent, 10) || 0;
+  api.setGeneral('taskbarGap', Math.min(96, Math.max(0, current + Number(b.dataset.dir) * 2)));
+  saved();
+});
 $$('[data-general-action]').forEach((b) => b.addEventListener('click', () => {
   api.setGeneral(b.dataset.generalAction, true);
   saved('Done');

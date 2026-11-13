@@ -293,7 +293,9 @@ function positionIsland() {
     // the body on the right, the card on its left: [card 430][gap 22][body 64], kept inside the window
     const CW = 516;
     const left = Math.min(Math.max(anchor.x - CW / 2, 8), window.innerWidth - CW - 8);
-    const top = anchor.docked ? 30 : Math.min(Math.max(anchor.y + 22, 10), window.innerHeight - 130);
+    const top = anchor.opensUp
+      ? Math.min(Math.max(anchor.y - 116, 10), window.innerHeight - 130)
+      : anchor.docked ? 30 : Math.min(Math.max(anchor.y + 22, 10), window.innerHeight - 130);
     island.style.setProperty('--x', `${Math.round(left + CW - 64)}px`);
     island.style.setProperty('--y', `${Math.round(top)}px`);
     const card = $('#scene-card');
@@ -313,7 +315,9 @@ function positionIsland() {
     y = clamp(anchor.y - h / 2, 4, H - h - 4);
   } else {
     x = clamp(anchor.x - w / 2, 4, W - w - 4);
-    y = anchor.docked ? 0 : clamp(anchor.y, 0, H - h - 6);
+    y = anchor.opensUp
+      ? clamp(anchor.y + DIMS.idle[1] - h, 4, H - h - 4)
+      : anchor.docked ? 0 : clamp(anchor.y, 0, H - h - 6);
   }
   island.style.setProperty('--x', `${Math.round(x)}px`);
   island.style.setProperty('--y', `${Math.round(y)}px`);
@@ -329,6 +333,7 @@ bridge.onAnchor((a) => {
     island.style.setProperty('--sh', `${a.sh}px`);
   }
   island.classList.toggle('docked', !!a.docked);
+  island.classList.toggle('taskbar', !!a.taskbar);
   island.classList.toggle('vertical', !!a.vertical);
   island.classList.toggle('side-left', !!a.vertical && a.side === 'left');
   island.classList.toggle('side-right', !!a.vertical && a.side === 'right');

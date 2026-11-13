@@ -53,10 +53,22 @@
             <label class="row"><b>Show island</b><input type="checkbox" class="sw" data-general="shown"></label>
             <label class="row" id="startup-row"><b>Start with Windows</b><input type="checkbox" class="sw" data-general="startWithWindows"></label>
             <div class="row" id="startup-store-row" hidden><div class="txt"><b>Start with Windows</b><small>Managed by Windows for the Store version</small></div><button class="btn" data-support="startupapps">Open startup apps</button></div>
-            <div class="row"><b>Orientation</b>
-              <div class="seg" role="radiogroup" aria-label="Orientation">
-                <button role="radio" data-orient="h">Horizontal</button>
-                <button role="radio" data-orient="v">Vertical</button>
+            <div class="row"><div class="txt"><b>Placement</b><small>Choose where Nova Island lives</small></div>
+              <div class="seg" role="radiogroup" aria-label="Placement">
+                <button role="radio" data-placement="original">Original</button>
+                <button role="radio" data-placement="taskbar">Taskbar</button>
+                <button role="radio" data-placement="left">Left</button>
+                <button role="radio" data-placement="right">Right</button>
+              </div>
+            </div>
+            <div class="row sub taskbar-option"><div class="txt"><b>Taskbar gap</b><small>Distance above the taskbar</small></div>
+              <div class="stepper" id="taskbar-gap"><button data-dir="-1" aria-label="Less">−</button><output>6 px</output><button data-dir="1" aria-label="More">+</button></div>
+            </div>
+            <div class="row sub taskbar-option"><b>Horizontal alignment</b>
+              <div class="seg" role="radiogroup" aria-label="Taskbar horizontal alignment">
+                <button role="radio" data-taskbar-align="left">Left</button>
+                <button role="radio" data-taskbar-align="center">Center</button>
+                <button role="radio" data-taskbar-align="right">Right</button>
               </div>
             </div>
             <div class="row"><div class="txt"><b>In the browser</b><small id="browser-hint"></small></div>
@@ -67,7 +79,7 @@
             </div>
             <label class="row"><b>Hide in full screen</b><input type="checkbox" class="sw" data-feature="hideFullscreen"></label>
             <label class="row" id="update-row"><b>Auto-update</b><input type="checkbox" class="sw" data-feature="autoUpdate"></label>
-            <div class="row"><b>Position</b><button class="btn" data-general-action="resetPosition">Reset</button></div>
+            <div class="row"><b>Reset placement</b><button class="btn" data-general-action="resetPosition">Reset</button></div>
           </div>
         </div>
         <div class="group">

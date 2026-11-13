@@ -11,6 +11,19 @@ test('detects taskbars on every display edge', () => {
   assert.equal(inferTaskbarEdge(bounds, { x: 0, y: 0, width: 1872, height: 1080 }).edge, 'right');
 });
 
+test('uses the usable bottom edge for top, left, and right taskbar layouts', () => {
+  const cases = [
+    { workArea: { x: 0, y: 40, width: 1920, height: 1040 }, edge: 'top', y: 1040 },
+    { workArea: { x: 48, y: 0, width: 1872, height: 1080 }, edge: 'left', y: 1040 },
+    { workArea: { x: 0, y: 0, width: 1872, height: 1080 }, edge: 'right', y: 1040 },
+  ];
+  for (const item of cases) {
+    const p = taskbarAnchor({ bounds, workArea: item.workArea });
+    assert.equal(p.taskbar.edge, item.edge);
+    assert.equal(p.y, item.y);
+  }
+});
+
 test('places the island above a bottom taskbar with the configured DIP gap', () => {
   const p = taskbarAnchor({ bounds, workArea: { x: 0, y: 0, width: 1920, height: 1040 } }, { gap: 6 });
   assert.deepEqual({ x: p.x, y: p.y }, { x: 960, y: 1000 });
