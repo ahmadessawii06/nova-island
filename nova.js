@@ -28,6 +28,7 @@ const updater = require('./updater');
 const news = require('./news');
 const plugins = require('./plugins');
 const { DEFAULT_TASKBAR_GAP, taskbarAnchor } = require('./placement');
+const { screenRect, containsPoint, shouldGhost } = require('./hover');
 
 // Keep our own windows (the mini player) out of Windows' media sessions, so the island and
 // the per-app commands keep targeting the browser tab rather than the mini player.
@@ -262,6 +263,7 @@ function setPlacement(mode) {
   omniKey = '';
   anchor = defaultAnchorForPlacement(display);
   layout();
+  updateGhost();
   savePosition();
   notifyGeneral();
 }
@@ -752,14 +754,13 @@ function onBrowser(b) {
   updateGhost();
 }
 function updateGhost() {
-  let over = false;
-  if (!features.get().addrIsland && browserRect && win && !win.isDestroyed() && islandRect.width) {
-    const wb = win.getBounds();
-    const x = wb.x + islandRect.x;
-    const y = wb.y + islandRect.y;
-    const br = browserRect;
-    over = x < br.x + br.width && x + islandRect.width > br.x && y < br.y + br.height && y + islandRect.height > br.y;
-  }
+  const islandScreenRect = win && !win.isDestroyed() ? screenRect(win.getBounds(), islandRect) : islandRect;
+  const over = shouldGhost({
+    placement: prefs.placement,
+    addressBarIsland: features.get().addrIsland,
+    browserRect,
+    islandScreenRect,
+  });
   if (!over) ghostOpen = false;
   const on = over && !ghostOpen;
   if (on === ghost) return;
@@ -841,18 +842,15 @@ function pollCursor() {
   if (!win || win.isDestroyed() || !win.isVisible() || drag) return;
   const p = screen.getCursorScreenPoint();
   const b = win.getBounds();
+  const hitRect = screenRect(b, islandRect);
   const x = p.x - b.x;
   const y = p.y - b.y;
-  const fx = Math.max(islandRect.x - x, 0, x - islandRect.x - islandRect.width);
-  const fy = Math.max(islandRect.y - y, 0, y - islandRect.y - islandRect.height);
+  const fx = Math.max(hitRect.x - p.x, 0, p.x - hitRect.x - hitRect.width);
+  const fy = Math.max(hitRect.y - p.y, 0, p.y - hitRect.y - hitRect.height);
   cursorFar = Math.hypot(fx, fy) > FAR_PX;
   sendNear(x, y);
   const pad = active ? 8 : 2;
-  const now =
-    x >= islandRect.x - pad &&
-    x <= islandRect.x + islandRect.width + pad &&
-    y >= islandRect.y - pad &&
-    y <= islandRect.y + islandRect.height + pad;
+  const now = containsPoint(hitRect, p, pad);
   if (now && !inside) enteredAt = Date.now();
   inside = now;
   if (!now) {
