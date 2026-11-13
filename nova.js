@@ -65,6 +65,7 @@ if (!['left', 'center', 'right'].includes(prefs.taskbarAlignment)) prefs.taskbar
 // island inside the window so it expands toward the free space near screen edges.
 const PILL_HALF_W = 120;   // half of the widest collapsed pill (keep in sync with style.css)
 const PILL_H = 34;
+const TASKBAR_PILL_H = 32; // idle pill; taskbar gap is measured from its visible bottom edge
 const FLOAT_TOP = 8;       // gap above a floating island inside the window
 const SNAP_PX = 28;        // distance from the top edge that docks the island
 const CENTER_SNAP_PX = 40; // horizontal magnet to the screen center while docked
@@ -186,7 +187,7 @@ function layout() {
     const minY = wa.y;
     const maxY = wa.y + wa.height - WIN_H;
     wx = Math.round(clamp(anchor.x - WIN_W / 2, minX, Math.max(minX, maxX)));
-    wy = Math.round(clamp(anchor.y + PILL_H - WIN_H, minY, Math.max(minY, maxY)));
+    wy = Math.round(clamp(anchor.y + TASKBAR_PILL_H - WIN_H, minY, Math.max(minY, maxY)));
   } else if (prefs.vertical) {
     anchor.x = prefs.side === 'left' ? b.x : b.x + b.width;
     anchor.y = clamp(anchor.y, wa.y + V_PILL_HALF_H, wa.y + wa.height - V_PILL_HALF_H);

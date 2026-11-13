@@ -13,9 +13,9 @@ test('detects taskbars on every display edge', () => {
 
 test('uses the usable bottom edge for top, left, and right taskbar layouts', () => {
   const cases = [
-    { workArea: { x: 0, y: 40, width: 1920, height: 1040 }, edge: 'top', y: 1040 },
-    { workArea: { x: 48, y: 0, width: 1872, height: 1080 }, edge: 'left', y: 1040 },
-    { workArea: { x: 0, y: 0, width: 1872, height: 1080 }, edge: 'right', y: 1040 },
+    { workArea: { x: 0, y: 40, width: 1920, height: 1040 }, edge: 'top', y: 1042 },
+    { workArea: { x: 48, y: 0, width: 1872, height: 1080 }, edge: 'left', y: 1042 },
+    { workArea: { x: 0, y: 0, width: 1872, height: 1080 }, edge: 'right', y: 1042 },
   ];
   for (const item of cases) {
     const p = taskbarAnchor({ bounds, workArea: item.workArea });
@@ -26,7 +26,7 @@ test('uses the usable bottom edge for top, left, and right taskbar layouts', () 
 
 test('places the island above a bottom taskbar with the configured DIP gap', () => {
   const p = taskbarAnchor({ bounds, workArea: { x: 0, y: 0, width: 1920, height: 1040 } }, { gap: 6 });
-  assert.deepEqual({ x: p.x, y: p.y }, { x: 960, y: 1000 });
+  assert.deepEqual({ x: p.x, y: p.y }, { x: 960, y: 1002 });
   assert.equal(p.taskbar.reliable, true);
 });
 
@@ -43,7 +43,7 @@ test('uses the selected monitor coordinates', () => {
   };
   const p = taskbarAnchor(display, { alignment: 'center' });
   assert.equal(p.x, -1300);
-  assert.equal(p.y, 1200);
+  assert.equal(p.y, 1202);
   assert.equal(p.taskbar.edge, 'right');
 });
 
@@ -54,13 +54,13 @@ test('keeps calculations in DIPs on mixed-DPI monitors', () => {
     workArea: { x: 1920, y: 0, width: 1280, height: 680 },
   };
   assert.deepEqual(taskbarAnchor(display, { gap: 6 }), {
-    x: 2560, y: 640, gap: 6, alignment: 'center',
+    x: 2560, y: 642, gap: 6, alignment: 'center',
     taskbar: { edge: 'bottom', inset: 40, reliable: true },
   });
 });
 
 test('reserves reveal space when an auto-hidden taskbar is ambiguous', () => {
   const p = taskbarAnchor({ bounds, workArea: bounds }, { gap: 6 });
-  assert.equal(p.y, 1080 - 34 - 6 - AUTO_HIDE_RESERVE);
+  assert.equal(p.y, 1080 - 32 - 6 - AUTO_HIDE_RESERVE);
   assert.equal(p.taskbar.reliable, false);
 });
