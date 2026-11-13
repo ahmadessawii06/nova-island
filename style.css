@@ -722,6 +722,21 @@ svg.s { fill: none; stroke: currentColor; stroke-width: 1.9; stroke-linecap: rou
 .rm-x { width: 24px; height: 24px; border-radius: 50%; display: grid; place-items: center; color: var(--text-3); transition: background var(--dur-fast), color var(--dur-fast); }
 .rm-x svg { width: 12px; height: 12px; stroke-width: 2.4; }
 .rm-x:hover { background: var(--fill-1); color: var(--text-1); }
+.rm-actions { position: relative; display: flex; align-items: center; gap: 3px; direction: ltr; }
+.rm-actions:not(.shareable) > :not(.rm-x) { display: none; }
+.rm-icon { width: 24px; height: 24px; border-radius: 50%; display: grid; place-items: center; color: var(--text-3); transition: background var(--dur-fast), color var(--dur-fast), transform var(--dur-fast); }
+.rm-icon svg { width: 13px; height: 13px; stroke-width: 1.9; }
+.rm-icon:hover, .rm-icon[aria-expanded="true"] { background: var(--fill-1); color: var(--text-1); transform: translateY(-1px); }
+.rm-copied { position: absolute; right: 78px; top: 2px; padding: 2px 7px; border-radius: 99px; background: rgba(48, 209, 88, .14); color: #66e88a; font-size: 10.5px; white-space: nowrap; opacity: 0; transform: translateX(4px); pointer-events: none; transition: opacity .18s, transform .22s var(--ease-out); }
+.rm-copied.on { opacity: 1; transform: none; }
+.rm-share-menu { position: absolute; z-index: 12; top: 30px; right: 27px; width: 190px; padding: 5px; border-radius: 13px; direction: var(--rm-menu-dir, ltr); text-align: start; background: rgba(24, 24, 32, .96); box-shadow: inset 0 0 0 1px var(--glass-stroke), 0 16px 42px rgba(0, 0, 0, .48); backdrop-filter: blur(22px) saturate(1.25); transform-origin: top right; animation: rm-menu-in .2s var(--spring); }
+.rm-share-menu button { width: 100%; height: 34px; padding: 0 9px; border-radius: 9px; display: flex; align-items: center; gap: 9px; color: var(--text-2); font-size: 12px; text-align: start; }
+.rm-share-menu button:hover, .rm-share-menu button:focus-visible { background: var(--fill-1); color: var(--text-1); }
+.rm-share-menu svg { width: 15px; height: 15px; flex: none; }
+.rm-brand { width: 15px; height: 15px; border-radius: 5px; display: grid; place-items: center; flex: none; background: rgba(var(--rm-rgb), .17); color: rgb(var(--rm-rgb)); font-size: 9px; font-weight: 800; }
+@keyframes rm-menu-in { from { opacity: 0; transform: translateY(-4px) scale(.96); } }
+.l-reminder[dir="rtl"] .rm-share-menu { --rm-menu-dir: rtl; right: auto; left: 27px; transform-origin: top left; }
+.l-reminder[dir="rtl"] .rm-copied { right: auto; left: 78px; }
 .rm-text {
   flex: 1; display: flex; align-items: center; justify-content: center; text-align: center;
   font-family: "Nova Quran", "Sakkal Majalla", "Traditional Arabic", "Segoe UI", sans-serif; font-size: var(--rm-fs, 26px);

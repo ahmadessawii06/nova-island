@@ -29,6 +29,7 @@ const news = require('./news');
 const plugins = require('./plugins');
 const { DEFAULT_TASKBAR_GAP, taskbarAnchor } = require('./placement');
 const { screenRect, containsPoint, shouldGhost } = require('./hover');
+const reminderShare = require('./reminder-share');
 
 // Keep our own windows (the mini player) out of Windows' media sessions, so the island and
 // the per-app commands keep targeting the browser tab rather than the mini player.
@@ -709,7 +710,7 @@ function perf() {
 }
 const perfSlow = () => Object.values(perf()).some(Boolean);
 function islandFeatures() {
-  return { ...features.get(), ...perf(), saver: saverOn };
+  return { ...features.get(), ...perf(), saver: saverOn, language: prefs.language };
 }
 let perfKey = '';
 function applyPerf() {
@@ -1042,6 +1043,18 @@ ipcMain.handle('island-features', () => islandFeatures());
 ipcMain.on('features-set', (_e, patch) => features.set(patch));
 ipcMain.on('features-reset', () => features.reset());
 ipcMain.on('reminder-preview', () => send('reminder-now'));
+ipcMain.handle('reminder-copy', (e, item) => {
+  if (!win || e.sender !== win.webContents) return false;
+  const text = reminderShare.reminderText(item);
+  if (!text) return false;
+  clipboard.writeText(text);
+  return true;
+});
+ipcMain.on('reminder-share', (e, provider, item) => {
+  if (!win || e.sender !== win.webContents) return;
+  const url = reminderShare.shareUrl(provider, reminderShare.reminderText(item));
+  if (url) shell.openExternal(url);
+});
 ipcMain.handle('general-get', () => generalState());
 // Settings > Support: the page names a link, main holds the addresses
 const SUPPORT_LINKS = {
@@ -1158,6 +1171,7 @@ ipcMain.on('general-set', (_e, key, value) => {
   if (key === 'language') {
     if (['en', 'ar'].includes(value)) prefs.language = value;
     settings.save('settings.json', prefs);
+    send('features', islandFeatures());
     notifyGeneral();
     return;
   }

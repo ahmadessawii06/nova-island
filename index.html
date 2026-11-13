@@ -138,7 +138,18 @@
       <div class="layer l-reminder" dir="rtl" lang="ar" aria-live="polite">
         <div class="rm-head">
           <span class="rm-badge"><svg class="s" viewBox="0 0 24 24"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></svg><span id="rm-kind"></span></span>
-          <button class="rm-x" id="rm-close" aria-label="Close" title="Close"><svg class="s" viewBox="0 0 24 24"><path d="M18 6 6 18M6 6l12 12"/></svg></button>
+          <div class="rm-actions">
+            <span class="rm-copied" id="rm-copied" role="status" aria-live="polite"></span>
+            <button class="rm-icon" id="rm-copy" aria-label="Copy" title="Copy"><svg class="s" viewBox="0 0 24 24"><rect x="8" y="8" width="11" height="11" rx="2"/><path d="M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2"/></svg></button>
+            <button class="rm-icon" id="rm-share" aria-label="Share" title="Share" aria-haspopup="menu" aria-expanded="false"><svg class="s" viewBox="0 0 24 24"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="m8.6 10.5 6.8-4M8.6 13.5l6.8 4"/></svg></button>
+            <button class="rm-x" id="rm-close" aria-label="Close" title="Close"><svg class="s" viewBox="0 0 24 24"><path d="M18 6 6 18M6 6l12 12"/></svg></button>
+            <div class="rm-share-menu" id="rm-share-menu" role="menu" hidden>
+              <button role="menuitem" data-rm-share="copy"><svg class="s" viewBox="0 0 24 24"><rect x="8" y="8" width="11" height="11" rx="2"/><path d="M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2"/></svg><span data-en="Copy Text" data-ar="نسخ النص">Copy Text</span></button>
+              <button role="menuitem" data-rm-share="whatsapp"><span class="rm-brand">W</span><span data-en="Share via WhatsApp" data-ar="مشاركة عبر واتساب">Share via WhatsApp</span></button>
+              <button role="menuitem" data-rm-share="telegram"><span class="rm-brand">T</span><span data-en="Share via Telegram" data-ar="مشاركة عبر تيليجرام">Share via Telegram</span></button>
+              <button role="menuitem" data-rm-share="more"><svg class="s" viewBox="0 0 24 24"><path d="M12 16V3M7 8l5-5 5 5"/><path d="M5 13v6a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-6"/></svg><span data-en="More sharing options" data-ar="خيارات مشاركة أخرى">More sharing options</span></button>
+            </div>
+          </div>
         </div>
         <div class="rm-text" id="rm-text"></div>
         <div class="rm-ref" id="rm-ref"></div>

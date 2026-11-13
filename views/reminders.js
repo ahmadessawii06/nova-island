@@ -4,6 +4,10 @@
   const layer = $('.l-reminder');
   const textEl = $('#rm-text');
   const bar = $('.rm-time b');
+  const actions = $('.rm-actions');
+  const shareButton = $('#rm-share');
+  const shareMenu = $('#rm-share-menu');
+  const copied = $('#rm-copied');
   const KIND_NAME = { ayah: 'آية', dhikr: 'ذكر', dua: 'دعاء' };
   const KIND_FEATURE = { ayah: 'remindAyah', dhikr: 'remindDhikr', dua: 'remindDua' };
   const WIDTH = 500;
@@ -91,6 +95,9 @@
   }
 
   let total = 0;
+  let currentItem = null;
+  let menuOpen = false;
+  let copiedTimer = null;
   let nextAt = 0;
   let nextEvery = null; // the interval nextAt was counted with
   function schedule() {
@@ -109,6 +116,11 @@
     const english = item.html != null;
     layer.dir = measure.dir = english ? 'ltr' : 'rtl';
     layer.lang = english ? 'en' : 'ar';
+    currentItem = item;
+    const shareable = ['ayah', 'dhikr', 'dua'].includes(item.kind) && typeof item.text === 'string';
+    actions.classList.toggle('shareable', shareable);
+    closeMenu();
+    if (shareable) localizeActions();
     $('#rm-kind').textContent = item.badge || KIND_NAME[item.kind] || '';
     textEl.innerHTML = content(item);
     textEl.classList.toggle('ui', item.html != null);
@@ -124,6 +136,8 @@
   }
 
   function hide() {
+    closeMenu();
+    currentItem = null;
     state.reminderUntil = 0;
     state.hover = false; // don't spring open under the cursor when the card leaves
     schedule();
@@ -136,7 +150,7 @@
     lastTick = now;
     if (state.reminderUntil) {
       if (!feat('reminders') && !previewing) return hide();
-      const reading = state.hover && lastMode === 'reminder';
+      const reading = (state.hover || menuOpen) && lastMode === 'reminder';
       layer.classList.toggle('paused', reading);
       if (reading) state.reminderUntil += dt;
       if (now >= state.reminderUntil) {
@@ -163,9 +177,78 @@
     hide();
   });
 
+  const shareItem = () => currentItem ? {
+    text: currentItem.text,
+    ref: currentItem.ref || '',
+    quran: isQuran(currentItem),
+  } : null;
+  const displayedShareText = (item) => {
+    const text = item.quran
+      ? `﴿${item.text.replace(/(^|\s)([٠-٩]{1,3})(?=\s|$)/g, '$1۝$2')}﴾`
+      : item.text;
+    return `${text}${item.ref ? `\n${item.ref}` : ''}`;
+  };
+  function localizeActions() {
+    const ar = state.features.language === 'ar';
+    const pick = (el) => el.dataset[ar ? 'ar' : 'en'];
+    shareMenu.dir = ar ? 'rtl' : 'ltr';
+    shareMenu.querySelectorAll('[data-en]').forEach((el) => { el.textContent = pick(el); });
+    shareMenu.querySelector('[data-rm-share="more"]').hidden = typeof navigator.share !== 'function';
+    $('#rm-copy').ariaLabel = $('#rm-copy').title = ar ? 'نسخ' : 'Copy';
+    shareButton.ariaLabel = shareButton.title = ar ? 'مشاركة' : 'Share';
+  }
+  function closeMenu() {
+    menuOpen = false;
+    shareMenu.hidden = true;
+    shareButton.setAttribute('aria-expanded', 'false');
+  }
+  function copiedFeedback() {
+    copied.textContent = state.features.language === 'ar' ? 'تم النسخ!' : 'Copied!';
+    copied.classList.add('on');
+    clearTimeout(copiedTimer);
+    copiedTimer = setTimeout(() => copied.classList.remove('on'), 1300);
+  }
+  async function copyCurrent() {
+    const item = shareItem();
+    if (item && await bridge.copyReminder(item)) copiedFeedback();
+  }
+  $('#rm-copy').addEventListener('click', async (e) => {
+    e.stopPropagation();
+    await copyCurrent();
+  });
+  shareButton.addEventListener('click', (e) => {
+    e.stopPropagation();
+    menuOpen = shareMenu.hidden;
+    shareMenu.hidden = !menuOpen;
+    shareButton.setAttribute('aria-expanded', String(menuOpen));
+    if (menuOpen) shareMenu.querySelector('button')?.focus({ preventScroll: true });
+  });
+  shareMenu.addEventListener('click', async (e) => {
+    e.stopPropagation();
+    const action = e.target.closest('[data-rm-share]')?.dataset.rmShare;
+    const item = shareItem();
+    if (!action || !item) return;
+    if (action === 'copy') await copyCurrent();
+    else if (action === 'more' && typeof navigator.share === 'function') {
+      try { await navigator.share({ text: displayedShareText(item) }); } catch {}
+    } else if (action !== 'more') bridge.shareReminder(action, item);
+    closeMenu();
+  });
+  layer.addEventListener('click', (e) => {
+    if (menuOpen && !e.target.closest('.rm-share-menu, #rm-share')) closeMenu();
+  });
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && menuOpen) {
+      e.stopImmediatePropagation();
+      closeMenu();
+      shareButton.focus({ preventScroll: true });
+    }
+  }, true);
+
   // a new interval counts from now
   window.addEventListener('island:features', () => {
     if (nextAt && !state.reminderUntil && state.features.remindEvery !== nextEvery) schedule();
+    if (currentItem) localizeActions();
   });
 
   // other views open the big card for their own messages (welcome back, morning, breaks)

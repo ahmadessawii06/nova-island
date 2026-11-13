@@ -27,6 +27,8 @@ contextBridge.exposeInMainWorld('nova', {
   openSettings: () => ipcRenderer.send('open-settings'),
   ready: () => ipcRenderer.send('island-ready'),
   onReminderNow: on('reminder-now'),
+  copyReminder: (item) => ipcRenderer.invoke('reminder-copy', item),
+  shareReminder: (provider, item) => ipcRenderer.send('reminder-share', provider, item),
   onVisibility: on('visibility'),
   onPrivacy: on('privacy'),
   onCalendar: on('calendar'),

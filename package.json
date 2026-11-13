@@ -5,7 +5,7 @@
   "main": "nova.js",
   "scripts": {
     "start": "electron .",
-    "test": "node test/placement.test.js && node test/hover.test.js && node test/i18n.test.js",
+    "test": "node test/placement.test.js && node test/hover.test.js && node test/reminder-share.test.js && node test/i18n.test.js",
     "dist": "electron-builder --win nsis",
     "dist:portable": "electron-builder --win portable",
     "dist:store": "set \"ELECTRON_BUILDER_WINDOWS_KITS_PATH=C:\\Program Files (x86)\\Windows Kits\\10\\bin\\10.0.22621.0\\x64\" && electron-builder --win appx"
