@@ -114,6 +114,16 @@ label.row:hover { background: rgba(255, 255, 255, .025); }
 .row.off, .how.off, .card.off { display: none; }
 .btns { display: flex; gap: 8px; flex: none; }
 
+/* Arabic settings use the same components, mirrored with logical spacing. */
+html[dir="rtl"] .titlebar { padding: 0 16px 0 6px; }
+html[dir="rtl"] .side a.on::before { left: auto; right: 0; }
+html[dir="rtl"] .side-social { text-align: right; }
+html[dir="rtl"] .row.sub { padding-left: 14px; padding-right: 34px; }
+html[dir="rtl"] .row.sub2 { padding-left: 14px; padding-right: 54px; }
+html[dir="rtl"] .row small.val { text-align: left; }
+html[dir="rtl"] .row.folder .path { direction: ltr; text-align: right; }
+html[dir="rtl"] .stepper, html[dir="rtl"] .seg, html[dir="rtl"] .win-btns { direction: ltr; }
+
 /* tab chips */
 .chips { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
 .chip {

@@ -46,7 +46,7 @@ let fullscreenHidden = false;
 let prefs = Object.assign(
   {
     ax: null, ay: null, docked: false, vertical: false, side: 'right', placement: null,
-    taskbarGap: DEFAULT_TASKBAR_GAP, taskbarAlignment: 'center',
+    taskbarGap: DEFAULT_TASKBAR_GAP, taskbarAlignment: 'center', language: 'en',
   },
   settings.load('settings.json', {})
 );
@@ -59,6 +59,7 @@ prefs.vertical = prefs.placement === 'left' || prefs.placement === 'right';
 if (prefs.vertical) prefs.side = prefs.placement;
 prefs.taskbarGap = Number.isFinite(Number(prefs.taskbarGap)) ? clamp(Number(prefs.taskbarGap), 0, 96) : DEFAULT_TASKBAR_GAP;
 if (!['left', 'center', 'right'].includes(prefs.taskbarAlignment)) prefs.taskbarAlignment = 'center';
+if (!['en', 'ar'].includes(prefs.language)) prefs.language = 'en';
 
 // The island's position is an "anchor": the top-center of the collapsed pill, in screen
 // coordinates. The window (always fully on screen) follows it, and the renderer places the
@@ -1012,6 +1013,7 @@ function generalState() {
   return {
     shown: !userHidden, vertical: !!prefs.vertical, placement: prefs.placement,
     taskbarGap: prefs.taskbarGap, taskbarAlignment: prefs.taskbarAlignment,
+    language: prefs.language,
     startWithWindows: startsWithWindows(), version: app.getVersion(),
     store: STORE,
     battery: battery.pct, saver: saverOn,
@@ -1153,6 +1155,12 @@ ipcMain.on('general-set', (_e, key, value) => {
   if (key === 'taskbarAlignment') {
     if (['left', 'center', 'right'].includes(value)) prefs.taskbarAlignment = value;
     resetPosition();
+    return;
+  }
+  if (key === 'language') {
+    if (['en', 'ar'].includes(value)) prefs.language = value;
+    settings.save('settings.json', prefs);
+    notifyGeneral();
     return;
   }
   const on = !!value;

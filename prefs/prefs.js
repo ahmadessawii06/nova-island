@@ -7,7 +7,7 @@ let features = {};
 // ---- saved hint ----
 let savedTimer = null;
 function saved(text = 'Saved') {
-  $('#saved').textContent = text;
+  $('#saved').textContent = window.prefsI18n.t(text);
   $('#saved').classList.add('on');
   clearTimeout(savedTimer);
   savedTimer = setTimeout(() => $('#saved').classList.remove('on'), 1300);
@@ -95,15 +95,16 @@ $$('[data-feature]').forEach((el) => el.addEventListener('change', () => {
 const TIME_STEPS = Array.from({ length: 48 }, (_, i) => i * 30);
 const stepsOf = (st) => (st.dataset.steps === 'time' ? TIME_STEPS : st.dataset.steps.split(',').map(Number));
 function unitText(n, unit) {
-  if (unit === 'glass') return `${n} glasses`;
-  if (unit === 'day') return n === 0 ? 'None' : `${n > 0 ? '+' : '−'}${Math.abs(n)} day${Math.abs(n) === 1 ? '' : 's'}`;
+  const ar = window.prefsI18n.language === 'ar';
+  if (unit === 'glass') return ar ? `${n} أكواب` : `${n} glasses`;
+  if (unit === 'day') return n === 0 ? (ar ? 'لا شيء' : 'None') : `${n > 0 ? '+' : '−'}${Math.abs(n)} ${ar ? 'يوم' : `day${Math.abs(n) === 1 ? '' : 's'}`}`;
   if (unit === 'time') {
     const d = new Date(2000, 0, 1, Math.floor(n / 60), n % 60);
-    return d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+    return d.toLocaleTimeString(ar ? 'ar' : 'en-US', { hour: 'numeric', minute: '2-digit' });
   }
-  if (unit === 'min') return n >= 60 && n % 60 === 0 ? `${n / 60} h` : `${n} min`;
+  if (unit === 'min') return n >= 60 && n % 60 === 0 ? `${n / 60} ${ar ? 'س' : 'h'}` : `${n} ${ar ? 'د' : 'min'}`;
   if (unit === '%') return `${n}%`;
-  return `${n} s`;
+  return `${n} ${ar ? 'ث' : 's'}`;
 }
 function showSteppers() {
   $$('.stepper[data-num]').forEach((st) => {
@@ -133,12 +134,14 @@ $('#rm-preview').addEventListener('click', () => api.previewReminder());
 
 // ---- general (lives in the main process) ----
 function showGeneral(g) {
+  window.prefsI18n.setLanguage(g.language || 'en');
+  $$('[data-language]').forEach((b) => b.setAttribute('aria-checked', String(b.dataset.language === (g.language || 'en'))));
   $$('[data-general]').forEach((el) => { el.checked = !!g[el.dataset.general]; });
   $$('[data-placement]').forEach((b) => b.setAttribute('aria-checked', String(b.dataset.placement === g.placement)));
   $$('[data-taskbar-align]').forEach((b) => b.setAttribute('aria-checked', String(b.dataset.taskbarAlign === g.taskbarAlignment)));
   $$('.taskbar-option').forEach((el) => el.classList.toggle('off', g.placement !== 'taskbar'));
   $('#taskbar-gap output').textContent = `${g.taskbarGap} px`;
-  if (g.version) $('#version').textContent = `Version ${g.version}`;
+  if (g.version) $('#version').textContent = `${window.prefsI18n.t('Version')} ${g.version}`;
   // the Store version: Windows runs the startup entry and the Store installs updates
   $('#startup-row').hidden = $('#update-row').hidden = !!g.store;
   $('#startup-store-row').hidden = !g.store;
@@ -149,6 +152,13 @@ function showGeneral(g) {
   $('#saver-note').textContent = noBattery ? 'No battery'
     : g.saver ? `On now · battery ${g.battery}%` : 'Turns all three on when the battery runs low';
 }
+$$('[data-language]').forEach((b) => b.addEventListener('click', () => {
+  api.setGeneral('language', b.dataset.language);
+  window.prefsI18n.setLanguage(b.dataset.language);
+  $$('[data-language]').forEach((x) => x.setAttribute('aria-checked', String(x === b)));
+  showFeatures(features);
+  saved();
+}));
 $$('[data-support]').forEach((b) => b.addEventListener('click', () => api.openSupport(b.dataset.support)));
 $$('[data-general]').forEach((el) => el.addEventListener('change', () => {
   api.setGeneral(el.dataset.general, el.checked);
