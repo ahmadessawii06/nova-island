@@ -24,6 +24,11 @@ const cases = {
     collapsed: { x: 398, y: 284, width: 236, height: 32 },
     expanded: { x: 86, y: 84, width: 548, height: 232 },
   },
+  tray: {
+    window: { x: 1102, y: 760, width: 640, height: 320 },
+    collapsed: { x: 318, y: 284, width: 236, height: 32 },
+    expanded: { x: 6, y: 84, width: 548, height: 232 },
+  },
   left: {
     window: { x: 0, y: 360, width: 640, height: 320 },
     collapsed: { x: 0, y: 38, width: 44, height: 244 },
@@ -64,6 +69,10 @@ test('placements expand in the intended direction', () => {
     cases.taskbar_right.collapsed.x + cases.taskbar_right.collapsed.width, 'taskbar right opens left');
   assert.equal(cases.taskbar_right.expanded.y + cases.taskbar_right.expanded.height,
     cases.taskbar_right.collapsed.y + cases.taskbar_right.collapsed.height, 'taskbar right opens up');
+  assert.equal(cases.tray.expanded.x + cases.tray.expanded.width,
+    cases.tray.collapsed.x + cases.tray.collapsed.width, 'tray opens left');
+  assert.equal(cases.tray.expanded.y + cases.tray.expanded.height,
+    cases.tray.collapsed.y + cases.tray.collapsed.height, 'tray opens up');
   assert.equal(cases.left.expanded.x, cases.left.collapsed.x, 'left opens right');
   assert.equal(cases.right.expanded.x + cases.right.expanded.width,
     cases.right.collapsed.x + cases.right.collapsed.width, 'right opens left');

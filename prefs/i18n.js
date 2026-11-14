@@ -10,7 +10,7 @@
     'Show island': 'إظهار الجزيرة', 'Start with Windows': 'البدء مع Windows',
     'Managed by Windows for the Store version': 'يديره Windows في إصدار المتجر', 'Open startup apps': 'فتح تطبيقات بدء التشغيل',
     'Language': 'اللغة', 'Placement': 'الموضع', 'Choose where Nova Island lives': 'اختر مكان ظهور Nova Island',
-    'Original': 'الأصلي', 'Taskbar': 'شريط المهام', 'Left': 'يسار', 'Center': 'وسط', 'Right': 'يمين',
+    'Original': 'الأصلي', 'Taskbar': 'شريط المهام', 'Tray': 'صينية النظام (Tray)', 'Left': 'يسار', 'Center': 'وسط', 'Right': 'يمين',
     'Taskbar gap': 'المسافة عن شريط المهام', 'Distance above the taskbar': 'المسافة فوق شريط المهام',
     'Horizontal alignment': 'المحاذاة الأفقية', 'Taskbar horizontal alignment': 'المحاذاة الأفقية لشريط المهام',
     'In the browser': 'في المتصفح', 'Address bar': 'شريط العنوان', 'Stay in place': 'البقاء في المكان',

@@ -4,9 +4,13 @@ const {
   inferTaskbarEdge,
   taskbarAnchor,
   taskbarVisibleBounds,
+  trayAnchor,
+  trayVisibleBounds,
   AUTO_HIDE_RESERVE,
   DEFAULT_TASKBAR_MARGIN,
   DEFAULT_TASKBAR_PILL_WIDTH,
+  DEFAULT_TRAY_AREA_WIDTH,
+  DEFAULT_TRAY_MARGIN,
 } = require('../placement');
 
 const bounds = { x: 0, y: 0, width: 1920, height: 1080 };
@@ -154,4 +158,89 @@ test('reserves reveal space when an auto-hidden taskbar is ambiguous', () => {
   const p = taskbarAnchor({ bounds, workArea: bounds }, { gap: 6 });
   assert.equal(p.y, 1080 - 32 - 6 - AUTO_HIDE_RESERVE);
   assert.equal(p.taskbar.reliable, false);
+});
+
+test('places the island inside the taskbar vertically beside the tray area', () => {
+  const display = { bounds, workArea: { x: 0, y: 0, width: 1920, height: 1040 } };
+  const b = trayVisibleBounds(display);
+
+  // Vertically centered inside the 40px taskbar (1040 to 1080)
+  assert.equal(b.top, 1044, 'centered inside 40px taskbar height');
+  assert.equal(b.bottom, 1076, 'leaves 4px padding above bottom screen edge');
+  assert.equal(b.top - display.workArea.height, 4, 'leaves 4px padding below taskbar top');
+
+  // Horizontally beside the tray area with clean margin
+  const expectedRight = 1920 - DEFAULT_TRAY_AREA_WIDTH - DEFAULT_TRAY_MARGIN;
+  assert.equal(b.right, expectedRight);
+  assert.equal(b.width, DEFAULT_TASKBAR_PILL_WIDTH);
+  assert.equal(b.left, expectedRight - DEFAULT_TASKBAR_PILL_WIDTH);
+});
+
+test('supports custom trayBounds from Electron tray icon', () => {
+  const display = { bounds, workArea: { x: 0, y: 0, width: 1920, height: 1040 } };
+  const b = trayVisibleBounds(display, {
+    trayBounds: { x: 1750, y: 1044, width: 20, height: 20 },
+  });
+
+  assert.equal(b.right, 1750 - DEFAULT_TRAY_MARGIN, 'island right edge has margin left of tray icon');
+  assert.equal(b.left, 1750 - DEFAULT_TRAY_MARGIN - 236);
+  assert.equal(b.top, 1044);
+});
+
+test('supports 48px Windows 11 taskbars with vertical centering', () => {
+  const win11Display = { bounds, workArea: { x: 0, y: 0, width: 1920, height: 1032 } };
+  const b = trayVisibleBounds(win11Display);
+
+  assert.equal(b.top, 1040, 'centered inside 48px taskbar: 1032 + (48-32)/2');
+  assert.equal(b.bottom, 1072, 'leaves 8px padding from bottom');
+  assert.equal(b.top - 1032, 8, 'leaves 8px padding from top');
+});
+
+test('supports secondary monitor for tray placement', () => {
+  const secondaryDisplay = {
+    bounds: { x: 1920, y: 0, width: 1920, height: 1080 },
+    workArea: { x: 1920, y: 0, width: 1920, height: 1040 },
+  };
+  const b = trayVisibleBounds(secondaryDisplay);
+
+  assert.equal(b.top, 1044);
+  assert.equal(b.right, 1920 + 1920 - DEFAULT_TRAY_AREA_WIDTH - DEFAULT_TRAY_MARGIN);
+  assert.equal(b.left, 1920 + 1920 - DEFAULT_TRAY_AREA_WIDTH - DEFAULT_TRAY_MARGIN - 236);
+});
+
+test('supports dynamic trayNotifyRect from TrayNotifyWnd detection', () => {
+  const display = { bounds, workArea: { x: 0, y: 0, width: 1920, height: 1032 } };
+  const b = trayVisibleBounds(display, {
+    trayNotifyRect: { x: 1621, y: 1032, width: 299, height: 48 },
+  });
+
+  assert.equal(b.right, 1621 - DEFAULT_TRAY_MARGIN, 'island right edge is placed dynamically before TrayNotifyWnd');
+  assert.equal(b.left, 1621 - DEFAULT_TRAY_MARGIN - 236);
+  assert.equal(b.top, 1040);
+});
+
+test('dynamically adjusts position when tray notification area widens or narrows', () => {
+  const display = { bounds, workArea: { x: 0, y: 0, width: 1920, height: 1032 } };
+  const wide = trayVisibleBounds(display, {
+    trayNotifyRect: { x: 1550, y: 1032, width: 370, height: 48 },
+  });
+  assert.equal(wide.right, 1550 - DEFAULT_TRAY_MARGIN);
+  assert.equal(wide.left, 1550 - DEFAULT_TRAY_MARGIN - 236);
+
+  const narrow = trayVisibleBounds(display, {
+    trayNotifyRect: { x: 1700, y: 1032, width: 220, height: 48 },
+  });
+  assert.equal(narrow.right, 1700 - DEFAULT_TRAY_MARGIN);
+  assert.equal(narrow.left, 1700 - DEFAULT_TRAY_MARGIN - 236);
+});
+
+test('supports custom margin override for tray placement', () => {
+  const display = { bounds, workArea: { x: 0, y: 0, width: 1920, height: 1032 } };
+  const b = trayVisibleBounds(display, {
+    trayNotifyRect: { x: 1621, y: 1032, width: 299, height: 48 },
+    margin: 32,
+  });
+
+  assert.equal(b.right, 1621 - 32);
+  assert.equal(b.left, 1621 - 32 - 236);
 });

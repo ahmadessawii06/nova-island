@@ -344,6 +344,7 @@ bridge.onAnchor((a) => {
   }
   island.classList.toggle('docked', !!a.docked);
   island.classList.toggle('taskbar', !!a.taskbar);
+  island.classList.toggle('tray', !!a.tray);
   island.classList.toggle('vertical', !!a.vertical);
   island.classList.toggle('side-left', !!a.vertical && a.side === 'left');
   island.classList.toggle('side-right', !!a.vertical && a.side === 'right');

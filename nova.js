@@ -27,7 +27,7 @@ const prefsWindow = require('./prefs-window');
 const updater = require('./updater');
 const news = require('./news');
 const plugins = require('./plugins');
-const { DEFAULT_TASKBAR_GAP, taskbarAnchor } = require('./placement');
+const { DEFAULT_TASKBAR_GAP, taskbarAnchor, trayAnchor } = require('./placement');
 const { screenRect, containsPoint, shouldGhost } = require('./hover');
 const reminderShare = require('./reminder-share');
 
@@ -54,7 +54,7 @@ let prefs = Object.assign(
 );
 // Settings from older builds only stored vertical + side. Keep reading and writing those
 // fields so downgrades remain harmless while exposing the clearer placement preference.
-if (!['original', 'taskbar', 'left', 'right'].includes(prefs.placement)) {
+if (!['original', 'taskbar', 'tray', 'left', 'right'].includes(prefs.placement)) {
   prefs.placement = prefs.vertical ? (prefs.side === 'left' ? 'left' : 'right') : 'original';
 }
 prefs.vertical = prefs.placement === 'left' || prefs.placement === 'right';
@@ -110,6 +110,10 @@ function defaultAnchorForPlacement(display = displayForAnchor()) {
   if (prefs.placement === 'taskbar') {
     return taskbarAnchor(display, { gap: prefs.taskbarGap, alignment: prefs.taskbarAlignment });
   }
+  if (prefs.placement === 'tray') {
+    const tb = (tray && !tray.isDestroyed()) ? tray.getBounds() : null;
+    return trayAnchor(display, { trayBounds: tb, trayNotifyRect });
+  }
   if (prefs.placement === 'left' || prefs.placement === 'right') {
     return {
       x: prefs.placement === 'left' ? bounds.x : bounds.x + bounds.width,
@@ -128,6 +132,17 @@ function clamp(v, lo, hi) {
 // --- the address bar slot ---
 // While a Chromium browser is in front the island takes the right third of its address bar
 // (the user's split: two thirds for the address, one third for the island); it shrinks to a
+let trayNotifyRect = null;
+let trayNotifyKey = '';
+function onTrayNotify(t) {
+  const next = t ? screen.screenToDipRect(null, { x: t.x, y: t.y, width: t.w, height: t.h }) : null;
+  const key = next ? `${next.x},${next.y},${next.width},${next.height}` : '';
+  if (key === trayNotifyKey) return;
+  trayNotifyKey = key;
+  trayNotifyRect = next;
+  if (prefs.placement === 'tray') layout();
+}
+
 // thin line while the user types there. The user's own position is untouched and comes back
 // as soon as the browser isn't in front.
 // Only from the island's default place: never while vertical or after the user put it somewhere.
@@ -192,6 +207,20 @@ function layout() {
     const maxY = wa.y + wa.height - WIN_H;
     wx = Math.round(clamp(anchor.x - WIN_W / 2, minX, Math.max(minX, maxX)));
     wy = Math.round(clamp(anchor.y + TASKBAR_PILL_H - WIN_H, minY, Math.max(minY, maxY)));
+  } else if (prefs.placement === 'tray') {
+    const tb = (tray && !tray.isDestroyed()) ? tray.getBounds() : null;
+    const placed = trayAnchor(display, { trayBounds: tb, trayNotifyRect });
+    anchor.x = placed.x;
+    anchor.y = placed.y;
+    anchor.alignment = 'right';
+    const minX = b.x;
+    const maxX = b.x + b.width - WIN_W;
+    const minY = b.y;
+    const maxY = b.y + b.height - WIN_H;
+    const rightEdge = placed.targetRight || (anchor.x + PILL_HALF_W);
+    const idealWx = rightEdge - 548 - 6;
+    wx = Math.round(clamp(idealWx, minX, Math.max(minX, maxX)));
+    wy = Math.round(clamp(anchor.y + TASKBAR_PILL_H - WIN_H + 4, minY, Math.max(minY, maxY)));
   } else if (prefs.vertical) {
     anchor.x = prefs.side === 'left' ? b.x : b.x + b.width;
     anchor.y = clamp(anchor.y, wa.y + V_PILL_HALF_H, wa.y + wa.height - V_PILL_HALF_H);
@@ -207,15 +236,18 @@ function layout() {
   if (cur.x !== wx || cur.y !== wy || cur.width !== WIN_W || cur.height !== WIN_H) {
     win.setBounds({ x: wx, y: wy, width: WIN_W, height: WIN_H });
   }
+  const isTaskbar = prefs.placement === 'taskbar';
+  const isTray = prefs.placement === 'tray';
   const msg = {
     x: Math.round(anchor.x - wx),
     y: Math.round(anchor.y - wy),
     docked: !prefs.vertical && prefs.docked,
     vertical: prefs.vertical,
     side: prefs.side,
-    taskbar: prefs.placement === 'taskbar',
-    opensUp: prefs.placement === 'taskbar',
-    alignment: prefs.placement === 'taskbar' ? prefs.taskbarAlignment : 'center',
+    taskbar: isTaskbar || isTray,
+    tray: isTray,
+    opensUp: isTaskbar || isTray,
+    alignment: isTray ? 'right' : (isTaskbar ? prefs.taskbarAlignment : 'center'),
   };
   const key = JSON.stringify(msg);
   if (key !== lastLayout) {
@@ -255,7 +287,7 @@ function resetPosition() {
 }
 
 function setPlacement(mode) {
-  if (!['original', 'taskbar', 'left', 'right'].includes(mode) || mode === prefs.placement) return;
+  if (!['original', 'taskbar', 'tray', 'left', 'right'].includes(mode) || mode === prefs.placement) return;
   const display = displayForAnchor();
   prefs.placement = mode;
   prefs.vertical = mode === 'left' || mode === 'right';
@@ -299,7 +331,7 @@ function followCursor() {
   if (!drag || !win || win.isDestroyed()) return;
   const p = screen.getCursorScreenPoint();
   const b = screen.getDisplayNearestPoint(p).bounds;
-  if (prefs.placement === 'taskbar') {
+  if (prefs.placement === 'taskbar' || prefs.placement === 'tray') {
     anchor = { x: p.x, y: p.y };
     layout();
     return;
@@ -440,6 +472,7 @@ function startMedia() {
         if (typeof data.clip === 'number') onClipboardSeq(data.clip, !!data.clipPriv);
         if ('omni' in data) onOmni(data.omni);
         if ('browser' in data) onBrowser(data.browser);
+        if ('trayNotify' in data) onTrayNotify(data.trayNotify);
         if (typeof data.bat === 'number') onBattery(data.bat, data.ac !== false);
         if (typeof data.rec === 'boolean' && data.rec !== recording) {
           recording = data.rec;
@@ -1244,7 +1277,14 @@ function trayIcon() {
 function buildTray() {
   tray = new Tray(trayIcon());
   tray.setToolTip('Nova Island');
-  tray.on('click', () => tray.popUpContextMenu(appMenu()));
+  tray.on('click', () => {
+    if (prefs.placement === 'tray' && win && !win.isDestroyed()) {
+      win.show();
+      send('hover', true);
+    } else {
+      tray.popUpContextMenu(appMenu());
+    }
+  });
   tray.on('right-click', () => tray.popUpContextMenu(appMenu()));
 }
 

@@ -61,6 +61,8 @@ static class Win {
   [StructLayout(LayoutKind.Sequential)] public struct MONITORINFO { public int cbSize; public RECT rcMonitor; public RECT rcWork; public int dwFlags; }
   [DllImport("user32.dll")] static extern IntPtr GetForegroundWindow();
   [DllImport("user32.dll")] static extern bool GetWindowRect(IntPtr h, out RECT r);
+  [DllImport("user32.dll", CharSet = CharSet.Unicode)] static extern IntPtr FindWindow(string cls, string win);
+  [DllImport("user32.dll", CharSet = CharSet.Unicode)] static extern IntPtr FindWindowEx(IntPtr parent, IntPtr childAfter, string cls, string win);
   [DllImport("user32.dll")] static extern IntPtr MonitorFromWindow(IntPtr h, int flags);
   [DllImport("user32.dll")] static extern bool GetMonitorInfo(IntPtr m, ref MONITORINFO mi);
   [DllImport("user32.dll", CharSet = CharSet.Unicode)] static extern int GetClassName(IntPtr h, StringBuilder sb, int n);
@@ -193,6 +195,16 @@ static class Win {
     if (!GetMonitorInfo(MonitorFromWindow(h, 2), ref mi)) return false;
     var m = mi.rcMonitor;
     return r.L == m.L && r.T == m.T && r.R == m.R && r.B == m.B;
+  }
+
+  public static string TrayNotifyJson() {
+    IntPtr tray = FindWindow("Shell_TrayWnd", null);
+    if (tray == IntPtr.Zero) return "null";
+    IntPtr notify = FindWindowEx(tray, IntPtr.Zero, "TrayNotifyWnd", null);
+    if (notify == IntPtr.Zero) return "null";
+    RECT r;
+    if (!GetWindowRect(notify, out r) || r.R <= r.L || r.B <= r.T) return "null";
+    return "{\"x\":" + r.L + ",\"y\":" + r.T + ",\"w\":" + (r.R - r.L) + ",\"h\":" + (r.B - r.T) + "}";
   }
 }
 
@@ -467,6 +479,7 @@ static class Program {
       try { string t; Win.Foreground(out fgProc, out t); o.Add("fgProc", fgProc).Add("fgTitle", t); } catch { }
       try { o.Raw("omni", AddressBar.Json(Win.ForegroundHandle(), fgProc, Win.IsFullscreen())); } catch { o.Raw("omni", "null"); }
       try { o.Raw("browser", Win.BrowserJson(fgProc, Win.IsFullscreen())); } catch { o.Raw("browser", "null"); }
+      try { o.Raw("trayNotify", Win.TrayNotifyJson()); } catch { o.Raw("trayNotify", "null"); }
 
       try { outw.WriteLine(o.ToString()); } catch (IOException) { return 0; }
     }

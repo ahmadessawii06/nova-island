@@ -4,6 +4,8 @@ const DEFAULT_TASKBAR_GAP = 6;
 const DEFAULT_TASKBAR_MARGIN = 6;
 const DEFAULT_TASKBAR_PILL_WIDTH = 236;
 const DEFAULT_TASKBAR_PILL_HEIGHT = 32;
+const DEFAULT_TRAY_AREA_WIDTH = 300;
+const DEFAULT_TRAY_MARGIN = 24;
 const AUTO_HIDE_RESERVE = 48;
 
 function clamp(value, min, max) {
@@ -74,13 +76,75 @@ function taskbarVisibleBounds(display, options = {}) {
   };
 }
 
+// Tray placement: embeds the island directly inside the taskbar height, placed neatly beside the tray area.
+function trayAnchor(display, options = {}) {
+  const bounds = display.bounds;
+  const workArea = display.workArea;
+  const margin = clamp(Number.isFinite(options.margin) ? options.margin : DEFAULT_TRAY_MARGIN, 0, 96);
+  const pillWidth = options.pillWidth || DEFAULT_TASKBAR_PILL_WIDTH;
+  const pillHeight = options.pillHeight || DEFAULT_TASKBAR_PILL_HEIGHT;
+  const taskbar = inferTaskbarEdge(bounds, workArea);
+
+  // Vertical: centered directly inside the taskbar height
+  let y;
+  if (taskbar.edge === 'top') {
+    const taskbarHeight = taskbar.reliable ? (workArea.y - bounds.y) : 40;
+    y = bounds.y + Math.max(0, Math.round((taskbarHeight - pillHeight) / 2));
+  } else {
+    const taskbarTop = workArea.y + workArea.height;
+    const taskbarHeight = taskbar.reliable ? (bounds.y + bounds.height - taskbarTop) : 40;
+    y = taskbarTop + Math.max(0, Math.round((taskbarHeight - pillHeight) / 2));
+  }
+
+  // Horizontal: placed directly beside the tray icon / notification area
+  let targetRight;
+  const tnr = options.trayNotifyRect;
+  if (tnr && Number.isFinite(tnr.x) && (tnr.width > 0 || !Number.isFinite(tnr.width)) && tnr.x > bounds.x && tnr.x <= bounds.x + bounds.width) {
+    targetRight = tnr.x - margin;
+  } else if (options.trayBounds && Number.isFinite(options.trayBounds.x) && options.trayBounds.x > bounds.x) {
+    targetRight = options.trayBounds.x - margin;
+  } else {
+    const trayAreaWidth = clamp(Number.isFinite(options.trayAreaWidth) ? options.trayAreaWidth : DEFAULT_TRAY_AREA_WIDTH, 60, 480);
+    targetRight = workArea.x + workArea.width - trayAreaWidth - margin;
+  }
+
+  const targetX = targetRight - pillWidth / 2;
+  const minX = bounds.x + margin + pillWidth / 2;
+  const maxX = bounds.x + bounds.width - margin - pillWidth / 2;
+  const x = minX <= maxX ? clamp(targetX, minX, maxX) : bounds.x + bounds.width / 2;
+
+  return { x, y, alignment: 'right', taskbar, targetRight };
+}
+
+function trayVisibleBounds(display, options = {}) {
+  const anchor = trayAnchor(display, options);
+  const pillWidth = options.pillWidth || DEFAULT_TASKBAR_PILL_WIDTH;
+  const pillHeight = options.pillHeight || DEFAULT_TASKBAR_PILL_HEIGHT;
+  const left = anchor.x - pillWidth / 2;
+  const top = anchor.y;
+  return {
+    x: left,
+    y: top,
+    width: pillWidth,
+    height: pillHeight,
+    left,
+    top,
+    right: left + pillWidth,
+    bottom: top + pillHeight,
+  };
+}
+
 module.exports = {
   DEFAULT_TASKBAR_GAP,
   DEFAULT_TASKBAR_MARGIN,
   DEFAULT_TASKBAR_PILL_WIDTH,
   DEFAULT_TASKBAR_PILL_HEIGHT,
+  DEFAULT_TRAY_AREA_WIDTH,
+  DEFAULT_TRAY_MARGIN,
   AUTO_HIDE_RESERVE,
   inferTaskbarEdge,
   taskbarAnchor,
   taskbarVisibleBounds,
+  trayAnchor,
+  trayVisibleBounds,
 };
